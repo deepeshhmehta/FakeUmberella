@@ -152,13 +152,15 @@ app.get('/customers/rainprediction', function (req, res) {
 
     let retData = [];
     connection.query(
-    'SELECT id,name,location FROM `customers`',
+    'SELECT * FROM `customers`',
     function(err, qresult, fields) {
       console.log(data);
       qresult.forEach(function(value,index,arr){
         const obj = {
           id: value['id'],
           name: value['name'],
+          person: value['person'],
+          telephone: value['telephone'],
           location: value['location'],
           rainData: data[value['location']]
         }
