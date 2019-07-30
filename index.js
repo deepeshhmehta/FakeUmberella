@@ -150,16 +150,23 @@ app.get('/customers/rainprediction', function (req, res) {
     //   res.send(data);
     // }, delay);
 
-    let retData = {};
+    let retData = [];
     connection.query(
     'SELECT id,name,location FROM `customers`',
     function(err, qresult, fields) {
       console.log(data);
       qresult.forEach(function(value,index,arr){
-        retData[value['id']] = {};
-        retData[value['id']]['name'] = value['name'];
-        retData[value['id']]['location'] = value['location'];
-        retData[value['id']]['rainData'] = data[value['location']];
+        const obj = {
+          id: value['id'],
+          name: value['name'],
+          location: value['location'],
+          rainData: data[value['location']]
+        }
+        retData.push(obj);
+        // retData[value['id']] = {};
+        // retData[value['id']]['name'] = value['name'];
+        // retData[value['id']]['location'] = value['location'];
+        // retData[value['id']]['rainData'] = data[value['location']];
       });
         
       if(err){
