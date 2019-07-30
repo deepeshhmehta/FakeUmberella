@@ -5,6 +5,9 @@ const app = express();
 const jsonParser = bodyParser.json()
 
 const mysql = require('mysql2');
+const request = require('request');
+const weatherAPI_1 = `http://api.openweathermap.org/data/2.5/forecast?zip=`;
+const weatherAPI_2 = `,us&appid=d35c7f0ad46fbf782fd4c83b92f61017`;
 
 const connection = mysql.createConnection({
   host: 'localhost',
@@ -12,30 +15,11 @@ const connection = mysql.createConnection({
   password: 'rootroot',
   database: 'FakeUmberellaDB'
 });
- 
-// // simple query
-// connection.query(
-//   'SELECT * FROM `customers`',
-//   function(err, results, fields) {
-//     console.log(results); // results contains rows returned by server
-//     // console.log(fields); // fields contains extra meta data about results, if available
-//     let temp_customers = results;
-
-//     if(err){
-//       console.log(err);
-//     }
-//   }
-// );
 
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 app.use(cors()); //Cross Origin
 
-// let temp_customers = [
-// 						{id:1, name:'test1', employee : 5, location : "L4H2A5", person: "John", telephone: "6477732820"},
-// 						{id:2, name:'test2', employee : 6, location : "M9W6C9", person: "John", telephone: "6477732820"},
-// 						{id:3, name:'test3', employee : 7, location : "LHLHLH", person: "John", telephone: "6477732820"},
-// 					];
 
 app.get('/', function (req, res) {
   res.send('Welcome To Fake Umberella API ROUTE');
@@ -49,7 +33,6 @@ app.get('/customers', function (req, res) {
   connection.query(
   'SELECT * FROM `customers`',
   function(err, results, fields) {
-    console.log(results); // results contains rows returned by server
     // console.log(fields); // fields contains extra meta data about results, if available
     res.send(results);
 
@@ -129,32 +112,74 @@ app.delete('/customers/:id', function (req, res) {
 })
 
 app.get('/customers/rainprediction', function (req, res) {
-  res.send('Customers who will experience rain in next 5 days list')
-  //options to navigate through the app
+  // res.send(zipDaysLogic());
+  // res.send('Customers who will experience rain in next 5 days list')
+  let data = {};
+
+  connection.query(
+  'SELECT DISTINCT location FROM `customers`',
+  function(err, qresult, fields) {
+    // console.log(fields);
+    qresult.forEach(function(value,index,arr){
+      let zip = value['location'];
+      data[zip] = [];
+      request(weatherAPI_1 + zip + weatherAPI_2, function(error, response, body){
+        if (!error && response.statusCode == 200) {
+          const prediction = JSON.parse(body).list;
+          prediction.forEach(function(value,index,arr){
+            // console.log(value);
+            const day = new Date(value.dt_txt);
+            let options = { weekday: 'long'};
+            let dayName = new Intl.DateTimeFormat('en-US', options).format(day);
+            // console.log(`${value.dt_txt} : ${value.weather[0].main}`);
+            if((value.weather[0].main === 'Rain') && (data[zip].indexOf(dayName) === -1)){
+              data[zip].push(dayName);  
+            }
+            // data[value.dt_txt] = value.weather.main;
+          });
+          // console.log(data);
+          
+        }else{
+          console.log(error);
+        }
+      });
+    })
+    // let delay = 3000;
+    // setTimeout(function(){
+    //   console.log(data);  
+    //   res.send(data);
+    // }, delay);
+
+    let retData = {};
+    connection.query(
+    'SELECT id,name,location FROM `customers`',
+    function(err, qresult, fields) {
+      console.log(data);
+      qresult.forEach(function(value,index,arr){
+        retData[value['id']] = {};
+        retData[value['id']]['name'] = value['name'];
+        retData[value['id']]['location'] = value['location'];
+        retData[value['id']]['rainData'] = data[value['location']];
+      });
+        
+      if(err){
+        console.log(err);
+      }
+    });
+
+    let delay = 3000;
+    setTimeout(function(){
+      console.log(retData);
+      res.send(retData);
+    }, delay);
+  
+  });
 })
 
 app.get('/customers/topfour', function (req, res) {
   res.send('Top 4 employee count customers chart (Green for will rain Red for Will Not)')
   //options to navigate through the app
 })
-
-app.get('/customers/:id', function (req, res) {
-  // res.send('Customers CRUD operations page')
-  // res.render('customers');
-  const customer = temp_customers.find(c => c.id === parseInt(req.params.id));
-  if(!customer) res.status(404).send(`NO CUSTOMER WITH ID ${req.params.id} FOUND`);
-  res.send(customer);
-  //options to navigate through the app
-})
-
-app.post('/customers/add', function (req, res) {
-  // res.send('Customers CRUD operations page')
-  // res.render('customers');
-  // console.log(req.data)
-  res.send('Done');
-  //options to navigate through the app
-})
-
 
 
 const port = process.env.PORT || 5000
