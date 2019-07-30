@@ -184,8 +184,61 @@ app.get('/customers/rainprediction', function (req, res) {
 })
 
 app.get('/customers/topfour', function (req, res) {
-  res.send('Top 4 employee count customers chart (Green for will rain Red for Will Not)')
+  // res.send('Top 4 employee count customers chart (Green for will rain Red for Will Not)')
   //options to navigate through the app
+  connection.query(
+  'SELECT id, name, employee, location  FROM `customers` ORDER BY employee DESC LIMIT 4',
+  function(err, qresult, fields) {
+    
+    // console.log(qresult);
+    let retData = {};
+    retData['rain'] = [];
+    retData['noRain'] = [];
+    let data = [];
+    qresult.forEach(function(value,index,arr){
+      let zip = value['location'];
+      data[zip] = [];
+      request(weatherAPI_1 + zip + weatherAPI_2, function(error, response, body){
+        if (!error && response.statusCode == 200) {
+          const prediction = JSON.parse(body).list;
+          prediction.forEach(function(value,index,arr){
+            // console.log(value);
+            const day = new Date(value.dt_txt);
+            let options = { weekday: 'long'};
+            let dayName = new Intl.DateTimeFormat('en-US', options).format(day);
+            // console.log(`${value.dt_txt} : ${value.weather[0].main}`);
+            if((value.weather[0].main === 'Rain') && (data[zip].indexOf(dayName) === -1)){
+              data[zip].push(dayName);  
+            }
+            // data[value.dt_txt] = value.weather.main;
+          });
+          const obj = {
+            id: value['id'],
+            name: value['name'],
+            location: zip,
+            employee: value['employee'],
+            rainData: data[zip]
+          }
+          if(obj.rainData.length > 0){
+            retData['rain'].push(obj);
+          }else{
+            retData['noRain'].push(obj);
+          }
+          
+        }else{
+          console.log(error);
+        }
+
+      });
+    })
+    let delay = 3000;
+    setTimeout(function(){
+      // retData['noRain'][0] = retData['rain'][0];
+      // retData['rain'].splice(0,1);
+      console.log(JSON.stringify(retData));
+      res.send(JSON.stringify(retData));
+    }, delay);
+  })
 })
 
 
