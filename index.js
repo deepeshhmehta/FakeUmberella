@@ -22,13 +22,23 @@ app.use(cors()); //Cross Origin
 
 
 app.get('/', function (req, res) {
-  res.send('Welcome To Fake Umberella API ROUTE');
+  // res.send('Welcome To Fake Umberella API ROUTE');
   //options to navigate through the app
+  connection.query(
+  'DESC `customers`',
+  function(err, results, fields) {
+    // console.log(fields); // fields contains extra meta data about results, if available
+    res.send(results);
+
+    if(err){
+      console.log(err);
+    }
+  });
 })
 
 app.get('/customers', function (req, res) {
   //fetch from db
-  console.log('customers hit');
+  // console.log('customers hit');
   res.header("Access-Control-Allow-Origin", "*");
   connection.query(
   'SELECT * FROM `customers`',
@@ -45,15 +55,15 @@ app.get('/customers', function (req, res) {
 
 app.post('/customers', function (req, res) {
   let cust = req.body;
-  console.log(cust);
-  console.log(["'"+cust.name+"'","'"+cust.person+"'","'"+cust.location+"'","'"+cust.telephone+"'",cust.employee]);
+  // console.log(cust);
+  // console.log(["'"+cust.name+"'","'"+cust.person+"'","'"+cust.location+"'","'"+cust.telephone+"'",cust.employee]);
   
   connection.execute(
   "INSERT INTO `customers`(id,name,person,location,telephone,employee) VALUES (null,?,?, ?, ?, ?);",
   [cust.name, cust.person, cust.location, cust.telephone, cust.employee],
   function(err, results, fields) {
-    console.log(results);
-    console.log(fields); 
+    // console.log(results);
+    // console.log(fields); 
     res.header("Access-Control-Allow-Origin", "*");
     if(err){
       console.log(err);
@@ -71,8 +81,8 @@ app.put('/customers', function (req, res) {
   "UPDATE customers SET name = ?, person = ?, location = ?, telephone = ?, employee = ? WHERE id = ?;",
   [cust.name, cust.person, cust.location, cust.telephone, cust.employee, cust.id],
   function(err, results, fields) {
-    console.log(results);
-    console.log(fields); 
+    // console.log(results);
+    // console.log(fields); 
     res.header("Access-Control-Allow-Origin", "*");
     if(err){
       console.log(err);
@@ -88,8 +98,8 @@ app.delete('/customers/:id', function (req, res) {
   "DELETE FROM customers WHERE id = ?;",
   [req.params.id],
   function(err, results, fields) {
-    console.log(results);
-    console.log(fields); 
+    // console.log(results);
+    // console.log(fields); 
     res.header("Access-Control-Allow-Origin", "*");
     if(err){
       console.log(err);
@@ -100,7 +110,7 @@ app.delete('/customers/:id', function (req, res) {
   connection.query(
   'SELECT * FROM `customers`',
   function(err, results, fields) {
-    console.log(results); // results contains rows returned by server
+    // console.log(results); // results contains rows returned by server
     // console.log(fields); // fields contains extra meta data about results, if available
     res.send(results);
 
@@ -119,6 +129,7 @@ app.get('/customers/rainprediction', function (req, res) {
   connection.query(
   'SELECT DISTINCT location FROM `customers`',
   function(err, qresult, fields) {
+    let countDataReceived = 0;
     // console.log(fields);
     qresult.forEach(function(value,index,arr){
       let zip = value['location'];
@@ -137,6 +148,11 @@ app.get('/customers/rainprediction', function (req, res) {
             }
             // data[value.dt_txt] = value.weather.main;
           });
+          countDataReceived += 1;
+
+          if(countDataReceived === (qresult.length)){
+            afterLocationData(data,res);
+          }
           // console.log(data);
           
         }else{
@@ -144,17 +160,16 @@ app.get('/customers/rainprediction', function (req, res) {
         }
       });
     })
-    // let delay = 3000;
-    // setTimeout(function(){
-    //   console.log(data);  
-    //   res.send(data);
-    // }, delay);
+  
+   });
+})
 
-    let retData = [];
+function afterLocationData(data,res){
+  let retData = [];
     connection.query(
     'SELECT * FROM `customers`',
     function(err, qresult, fields) {
-      console.log(data);
+      // console.log(data);
       qresult.forEach(function(value,index,arr){
         const obj = {
           id: value['id'],
@@ -170,20 +185,13 @@ app.get('/customers/rainprediction', function (req, res) {
         // retData[value['id']]['location'] = value['location'];
         // retData[value['id']]['rainData'] = data[value['location']];
       });
-        
+      // console.log('sending data...');
+      res.send(retData);
       if(err){
         console.log(err);
       }
     });
-
-    let delay = 3000;
-    setTimeout(function(){
-      console.log(retData);
-      res.send(retData);
-    }, delay);
-  
-  });
-})
+}
 
 app.get('/customers/topfour', function (req, res) {
   // res.send('Top 4 employee count customers chart (Green for will rain Red for Will Not)')
@@ -197,6 +205,7 @@ app.get('/customers/topfour', function (req, res) {
     retData['rain'] = [];
     retData['noRain'] = [];
     let data = [];
+    let countDataReceived = 0;
     qresult.forEach(function(value,index,arr){
       let zip = value['location'];
       data[zip] = [];
@@ -226,6 +235,12 @@ app.get('/customers/topfour', function (req, res) {
           }else{
             retData['noRain'].push(obj);
           }
+
+          countDataReceived++;
+
+          if(countDataReceived === qresult.length){
+            res.send(JSON.stringify(retData));
+          }
           
         }else{
           console.log(error);
@@ -233,13 +248,6 @@ app.get('/customers/topfour', function (req, res) {
 
       });
     })
-    let delay = 3000;
-    setTimeout(function(){
-      // retData['noRain'][0] = retData['rain'][0];
-      // retData['rain'].splice(0,1);
-      console.log(JSON.stringify(retData));
-      res.send(JSON.stringify(retData));
-    }, delay);
   })
 })
 
