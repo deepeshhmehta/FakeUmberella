@@ -203,6 +203,7 @@ app.get('/customers/topfour', function (req, res) {
     
     // console.log(qresult);
     let retData = {};
+    retData['data'] = [];
     retData['rain'] = [];
     retData['noRain'] = [];
     let data = [];
@@ -227,15 +228,11 @@ app.get('/customers/topfour', function (req, res) {
           const obj = {
             id: value['id'],
             name: value['name'],
-            location: zip,
             employee: value['employee'],
-            rainData: data[zip]
+            color: (data[zip].length > 0) ? 'darkGreen' : 'darkRed',
           }
-          if(obj.rainData.length > 0){
-            retData['rain'].push(obj);
-          }else{
-            retData['noRain'].push(obj);
-          }
+
+          retData['data'].push(obj);
 
           countDataReceived++;
 
