@@ -22,18 +22,18 @@ app.use(cors()); //Cross Origin
 
 
 app.get('/', function (req, res) {
-  // res.send('Welcome To Fake Umberella API ROUTE');
+  res.send('Welcome To Fake Umberella API ROUTE');
   //options to navigate through the app
-  connection.query(
-  'DESC `customers`',
-  function(err, results, fields) {
-    // console.log(fields); // fields contains extra meta data about results, if available
-    res.send(results);
+  // connection.query(
+  // 'DESC `customers`',
+  // function(err, results, fields) {
+  //   // console.log(fields); // fields contains extra meta data about results, if available
+  //   res.send(results);
 
-    if(err){
-      console.log(err);
-    }
-  });
+  //   if(err){
+  //     console.log(err);
+  //   }
+  // });
 })
 
 app.get('/customers', function (req, res) {
@@ -41,7 +41,7 @@ app.get('/customers', function (req, res) {
   // console.log('customers hit');
   res.header("Access-Control-Allow-Origin", "*");
   connection.query(
-  'SELECT * FROM `customers`',
+  'SELECT * FROM `customers` WHERE soft_delete = false',
   function(err, results, fields) {
     // console.log(fields); // fields contains extra meta data about results, if available
     res.send(results);
@@ -95,12 +95,12 @@ app.put('/customers', function (req, res) {
 
 app.delete('/customers/:id', function (req, res) {
   connection.execute(
-  "DELETE FROM customers WHERE id = ?;",
+  "UPDATE customers SET soft_delete = true WHERE id = ?;",
   [req.params.id],
   function(err, results, fields) {
     // console.log(results);
     // console.log(fields); 
-    res.header("Access-Control-Allow-Origin", "*");
+    // res.header("Access-Control-Allow-Origin", "*");
     if(err){
       console.log(err);
       res.send(err);
@@ -108,7 +108,7 @@ app.delete('/customers/:id', function (req, res) {
   });
 
   connection.query(
-  'SELECT * FROM `customers`',
+  'SELECT * FROM `customers` WHERE soft_delete = false',
   function(err, results, fields) {
     // console.log(results); // results contains rows returned by server
     // console.log(fields); // fields contains extra meta data about results, if available
@@ -122,12 +122,13 @@ app.delete('/customers/:id', function (req, res) {
 })
 
 app.get('/customers/rainprediction', function (req, res) {
+  console.log('rain prediction');
   // res.send(zipDaysLogic());
   // res.send('Customers who will experience rain in next 5 days list')
   let data = {};
 
   connection.query(
-  'SELECT DISTINCT location FROM `customers`',
+  'SELECT DISTINCT location FROM `customers` WHERE soft_delete = false',
   function(err, qresult, fields) {
     let countDataReceived = 0;
     // console.log(fields);
@@ -167,9 +168,9 @@ app.get('/customers/rainprediction', function (req, res) {
 function afterLocationData(data,res){
   let retData = [];
     connection.query(
-    'SELECT * FROM `customers`',
+    'SELECT * FROM `customers` WHERE soft_delete = false',
     function(err, qresult, fields) {
-      // console.log(data);
+      console.log(data);
       qresult.forEach(function(value,index,arr){
         const obj = {
           id: value['id'],
